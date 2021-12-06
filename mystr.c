@@ -16,23 +16,17 @@ token *endOfTok(token *tok){
     else{ endOfTok(tok->next); }
 }
 
-token *newTok(token *tok){
-    tok = malloc(sizeof(token));
-    tok->next = NULL;
-    tok->str = "\0";
-    return tok;
-}
-
 void addStrTok(token *tok, char *c){
     tok->str = c;
 }
 
 token *addNewTok(token *tok, char *c){
     token *tokBuf = endOfTok(tok);
-    token *next;
-    tokBuf->next = newTok(next);
-    addStrTok(tokBuf->next, c);
-    return tokBuf->next;
+    token *next = malloc(sizeof(token));
+    next->str = c;
+    next->next = NULL;
+    tokBuf->next = next;
+    return next;
 }
 
 char *getTokStr(token *tok){
@@ -41,9 +35,9 @@ char *getTokStr(token *tok){
 }
 
 void printTok(token *tok){
-    if(tok->next != NULL){
-	char *buf = tok->str;
-	printf("\"%s\", ", tok->str);
+    if(tok != NULL){
+	char *str = tok->str;
+	printf("\"%s\", ", str);
 	printTok(tok->next);
     }
     else printf("\n");
@@ -61,30 +55,38 @@ token *strToTok(char *str, char *del){
     int posDel = 0;
     int startTokPos = 0;
     token *tok;
-    tok = newTok(tok); 
+    tok = NULL;
 
-    for(posStr = 0; posStr < strlen(str); posStr++){
+    for(posStr = 0; posStr <= strlen(str); posStr++){
 	for(posDel = 0; posDel < strlen(del); posDel++){
 	    char charStrBuf = str[posStr];
 	    char charDelBuf = del[posDel];
 
 	    if((charDelBuf == charStrBuf) && (startTokPos != posStr)){
-		char *newTok = malloc((posStr - startTokPos + 1)*sizeof(char));
+		char *newToken = malloc((posStr - startTokPos + 1)*sizeof(char));
 		int tokPos = 0;
 		for(int i = startTokPos; i < posStr; i++){
-		    newTok[tokPos] = str[i];
+		    newToken[tokPos] = str[i];
 		    tokPos++;
 		}
-		newTok[posStr-startTokPos] = 0;
-		if(tok == NULL) addStrTok(tok, newTok);
+		newToken[posStr-startTokPos] = 0;
+		if(tok != NULL){
+		    token *next = malloc(sizeof(tok));
+		    next->str = newToken;
+		    next->next = NULL;
+		    token *lastTok = endOfTok(tok);
+		    lastTok->next = next;
+		    startTokPos = posStr + 1;
+		}
 		else {
-		    token* tokBuf = endOfTok(tok);
-		    addNewTok(tokBuf, newTok);
+		    tok = malloc(sizeof(token));
+		    tok->str = newToken;
+		    tok->next = NULL;
 		    startTokPos = posStr + 1;
 		}
 	    }
 	    else if((charDelBuf == charStrBuf) && (startTokPos == posStr)){
-		startTokPos++;
+		startTokPos = posStr + 1;
 	    }
 	}
     }

@@ -53,25 +53,22 @@ void parserMT(char *path, machine *M){
 	token *tok = NULL;
 	while(line != NULL){
 	    tok = strToTok(line, delimiters);
-	    //printTok(tok);
 
+
+	    printTok(tok);
+
+	    
 	    token *tokBuf = tok;
 	    while(tokBuf != NULL){
 		char *str = getTokStr(tokBuf);
-
 		if(strcmp(str, "name") == 0){
 		    M->name = getTokStr(getNextTok(tokBuf));
-		}
-
-
-
-
-		
+		}		
 		tokBuf = getNextTok(tokBuf);
 	    }
 	    //faire le parsing a partir des token
 	    
-	    line = fgets(line, 70, descMachine);
+	    line = fgets(line, 128, descMachine);
 	}
     }
     else{
