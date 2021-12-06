@@ -1,6 +1,3 @@
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,19 +20,20 @@ struct link{
 typedef struct link link;
 
 struct machine{
-	Qstate *initState;
-	Qstate *currentState;
-	char *input;
-	int position;
+    char *name;
+    Qstate *initState;
+    Qstate *currentState;
+    char *input;
+    int position;
 };
 
 typedef struct machine machine;
 
-machine* initMachine(char *c){
+machine* initMachine(char *input){
 	machine *M = malloc(sizeof(machine));
 	M->initState = NULL;
 	M->currentState = NULL;
-	M->input = c;
+	M->input = input;
 	M->position = 0;
 	return M;
 }
@@ -55,8 +53,22 @@ void parserMT(char *path, machine *M){
 	token *tok = NULL;
 	while(line != NULL){
 	    tok = strToTok(line, delimiters);
-	    printTok(tok);
+	    //printTok(tok);
 
+	    token *tokBuf = tok;
+	    while(tokBuf != NULL){
+		char *str = getTokStr(tokBuf);
+
+		if(strcmp(str, "name") == 0){
+		    M->name = getTokStr(getNextTok(tokBuf));
+		}
+
+
+
+
+		
+		tokBuf = getNextTok(tokBuf);
+	    }
 	    //faire le parsing a partir des token
 	    
 	    line = fgets(line, 70, descMachine);

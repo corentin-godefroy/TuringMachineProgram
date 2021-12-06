@@ -10,6 +10,7 @@ struct token{
 
 typedef struct token token;
 
+//Renvois le pointeur du dernier token
 token *endOfTok(token *tok){
     if(tok->next == NULL){ return tok; }
     else{ endOfTok(tok->next); }
@@ -22,6 +23,23 @@ token *newTok(token *tok){
     return tok;
 }
 
+void addStrTok(token *tok, char *c){
+    tok->str = c;
+}
+
+token *addNewTok(token *tok, char *c){
+    token *tokBuf = endOfTok(tok);
+    token *next;
+    tokBuf->next = newTok(next);
+    addStrTok(tokBuf->next, c);
+    return tokBuf->next;
+}
+
+char *getTokStr(token *tok){
+    char *c = tok->str;
+    return c;
+}
+
 void printTok(token *tok){
     if(tok->next != NULL){
 	char *buf = tok->str;
@@ -31,12 +49,19 @@ void printTok(token *tok){
     else printf("\n");
 }
 
+token *getNextTok(token *tok){
+    return tok->next;
+}
+
+//str : chaine d'entrée
+//del : carractères de délimitation servant à découper la chaine en token
+//renvoie une liste chainée de token 
 token *strToTok(char *str, char *del){
     int posStr = 0;
     int posDel = 0;
     int startTokPos = 0;
     token *tok;
-    tok = newTok(tok);
+    tok = newTok(tok); 
 
     for(posStr = 0; posStr < strlen(str); posStr++){
 	for(posDel = 0; posDel < strlen(del); posDel++){
@@ -50,11 +75,16 @@ token *strToTok(char *str, char *del){
 		    newTok[tokPos] = str[i];
 		    tokPos++;
 		}
-		newTok[posStr-startTokPos+1] = 0;
-		token* tokBuf = endOfTok(tok);
-		tokBuf->str = newTok;
-		tokBuf->next = malloc(sizeof(tok));
-		startTokPos = posStr + 1;
+		newTok[posStr-startTokPos] = 0;
+		if(tok == NULL) addStrTok(tok, newTok);
+		else {
+		    token* tokBuf = endOfTok(tok);
+		    addNewTok(tokBuf, newTok);
+		    startTokPos = posStr + 1;
+		}
+	    }
+	    else if((charDelBuf == charStrBuf) && (startTokPos == posStr)){
+		startTokPos++;
 	    }
 	}
     }
