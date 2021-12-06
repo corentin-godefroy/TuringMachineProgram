@@ -1,7 +1,11 @@
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "machine.h"
+#include "mystr.h"
 
 struct Qstate{
 	char name;
@@ -36,37 +40,27 @@ machine* initMachine(char *c){
 	return M;
 }
 
-void parserMT(char *params[], machine *M){
+void parserMT(char *path, machine *M){
     //TODO parsing du fichier par lecture ligne à ligne en ignorant celle qui commencent par //
     //Reconnaitre état initial
     //reconnaitre état
     //initialiser état
-    //faire liaison correspondantes => créer états si non existan
-
-    FILE *descMachine = fopen(params[1], "r");
+    //faire liaison correspondantes => créer états si non existant
+    char *delimiters = "; :,\n\0";
+    
+    FILE *descMachine = fopen(path, "r");
     if(descMachine != NULL){
-	char *line = malloc(40*sizeof(char));
-	do{
-	    line = fgets(line, 40, descMachine);
-	    char *tok = NULL;
-	    char *saveptr = line;
-	    char *delimiters = (", :");
+	char *line = malloc(128*sizeof(char));
+	line = fgets(line, 128, descMachine);	
+	token *tok = NULL;
+	while(line != NULL){
+	    tok = strToTok(line, delimiters);
+	    printTok(tok);
 
-	    do{
-		tok = strtok_r(saveptr, delimiters, &saveptr);
-		printf("%s", (&tok[0]));
-		printf("\n");
+	    //faire le parsing a partir des token
 	    
-		if((&tok[0] == "init")){
-		    printf("\n1 état initial\n");
-		}
-		else if(M->initState != NULL){
-		    fprintf(stderr, "(2) Plusieurs états initiaux ont été donnés.");
-		}
-
-	    }while(tok != NULL);
-	}while(line != NULL);
-
+	    line = fgets(line, 70, descMachine);
+	}
     }
     else{
 	fprintf(stderr, "(1) Descripting file of turing machine not found.");

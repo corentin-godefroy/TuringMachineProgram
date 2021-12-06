@@ -3,40 +3,60 @@
 #include <string.h>
 #include "mystr.h"
 
-char *strToTok(char *str, char *del){
-    printf("%s\n", str);
-    char *tokenList = NULL;
-    int ptrPosStr = 0;
-    int ptrPosDel = 0;
+struct token{
+    char *str;
+    struct token *next;
+};
 
-    int limStr = strlen(str);
-    int limDel = strlen(del);
+typedef struct token token;
 
-    char *strBuf1 = malloc(sizeof(str));
-    char *strBuf2 = malloc(sizeof(str));
+token *endOfTok(token *tok){
+    if(tok->next == NULL){ return tok; }
+    else{ endOfTok(tok->next); }
+}
 
-    while(ptrPosStr < limStr){
-	strBuf1[ptrPosStr] = str[ptrPosStr];
-	ptrPosStr++;
+token *newTok(token *tok){
+    tok = malloc(sizeof(token));
+    tok->next = NULL;
+    tok->str = "\0";
+    return tok;
+}
+
+void printTok(token *tok){
+    if(tok->next != NULL){
+	char *buf = tok->str;
+	printf("\"%s\", ", tok->str);
+	printTok(tok->next);
     }
+    else printf("\n");
+}
 
-    printf("limDel : %d\n", limDel);
+token *strToTok(char *str, char *del){
+    int posStr = 0;
+    int posDel = 0;
+    int startTokPos = 0;
+    token *tok;
+    tok = newTok(tok);
 
-    if(limDel >= 2){
-	while(ptrPosDel < limDel-1){
-	    ptrPosStr = 0;
-	    while(ptrPosStr < limStr){
-		//printf("char str : %c, char del : %c\n",str[ptrPosStr], del[ptrPosDel]);
-		if(str[ptrPosStr] == del[ptrPosDel]){
-		    str[ptrPosStr] = (char)(del[limDel-1]);
+    for(posStr = 0; posStr < strlen(str); posStr++){
+	for(posDel = 0; posDel < strlen(del); posDel++){
+	    char charStrBuf = str[posStr];
+	    char charDelBuf = del[posDel];
+
+	    if((charDelBuf == charStrBuf) && (startTokPos != posStr)){
+		char *newTok = malloc((posStr - startTokPos + 1)*sizeof(char));
+		int tokPos = 0;
+		for(int i = startTokPos; i < posStr; i++){
+		    newTok[tokPos] = str[i];
+		    tokPos++;
 		}
-		ptrPosStr++;
+		newTok[posStr-startTokPos+1] = 0;
+		token* tokBuf = endOfTok(tok);
+		tokBuf->str = newTok;
+		tokBuf->next = malloc(sizeof(tok));
+		startTokPos = posStr + 1;
 	    }
-	    ptrPosDel++;
 	}
     }
-
-    printf("%s\n", strBuf1);
-    
-    return strBuf1;
+    return tok;
 }
