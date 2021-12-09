@@ -1,0 +1,156 @@
+name: MachinePalindromes
+init: QInit
+accept: QAccept
+
+//Initial, début comptage
+QInit, a //test
+QImpair, a, >
+
+QInit, b
+QImpair, b, >
+
+//Suite comptage
+QImpair, a
+QPair, a, >
+
+QImpair, b
+QPair, b, >
+
+QPair, a
+QImpair, a, >
+
+QPair, b
+QImpair, b, >
+
+//Fin comptage, déterminisation de parité
+QImpair, _
+QImpairBis, _, <
+
+QPair, _
+QPairBis, _, <
+
+//Cas particulier mot vide
+QInit, _
+QPairBis, _, <
+
+//retour début
+QPairBis, a
+QPairBis, a, <
+
+QPairBis, b
+QPairBis, b, <
+
+QPairBis, _
+QAcceptPair, _, >
+
+QImpairBis, a
+QImpairBis, a, <
+
+QImpairBis, b
+QImpairBis, b, <
+
+QImpairBis, _
+QAcceptImpair, _, >
+
+//-------------------------------------
+
+//PalindromePair
+//Initial, enregistrement premiere lettre
+QAcceptPair, a
+QPa, _, >
+
+QAcceptPair, b
+QPb, _, >
+
+QAcceptPair, _
+QAccept, _, -
+
+//direction fin du mot
+QPa, a
+QPa, a, >
+
+QPa, b
+QPa, b, >
+
+QPb, a
+QPb, a, >
+
+QPb, b
+QPb, b, >
+
+//detection fin du mot
+QPa, _
+QPa2, _, <
+
+QPb, _
+QPb2, _, <
+
+//Detection lettre identique
+QPa2, a
+QPRetour, _, <
+
+QPb2, b
+QPRetour, _, <
+
+QPRetour, a
+QPRetour, a, <
+
+QPRetour, b
+QPRetour, b, <
+
+QPRetour, _
+QAcceptPair, _, >
+
+//-----------------------------------
+
+//PalindromesImpairs
+//Initial, enregistrement premiere lettre
+QAcceptImpair, a
+QIa, _, >
+
+QAcceptImpair, b
+QIb, _, >
+
+//direction fin du mot
+QIa, a
+QIa, a, >
+
+QIa, b
+QIa, b, >
+
+QIb, a
+QIb, a, >
+
+QIb, b
+QIb, b, >
+
+//detection fin du mot
+QIa, _
+QIa2, _, <
+
+QIb, _
+QIb2, _, <
+
+//Detection lettre identique
+QIa2, a
+QIRetour, _, <
+
+QIb2, b
+QIRetour, _, <
+
+//Acceptation
+QIa2, _
+QAccept, _, -
+
+QIb2, _
+QAccept, _, -
+
+//Retour au début
+QIRetour, a
+QIRetour, a, <
+
+QIRetour, b
+QIRetour, b, <
+
+QIRetour, _
+QAcceptImpair, _, >
