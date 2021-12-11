@@ -10,6 +10,21 @@ struct Qstate{
 	struct link *links;
 };
 
+Qstate *newQstate(char *name, int final){
+    Qstate *new = malloc(sizeof(Qstate));
+    new->name = name;
+    if((final == 0) || (final == 1)){
+	new->final = final;
+    }
+    else{
+	fprintf(stdout, "\x1B[33mWARNING Final value are not valid on state \"%s\". It must be 0 if the state is not final 1 else.\n\x1B[0m", name);
+	exit(0);
+    }
+    new->links = NULL;
+    return new;
+    
+}
+
 typedef struct Qstate Qstate;
 
 struct link{
@@ -42,20 +57,16 @@ machine *initMachine(char *input){
 	return M;
 }
 
-Qlist *addQlist(Qlist *list, char *name){
+Qlist *addQlist(Qlist *list, Qstate *State){
     if(list->next == NULL){
-	Qstate *newState = malloc(sizeof(Qstate));
-	newState->name = name;
-	newState->final = 0;
-	newState->links = NULL;
-
+	list->state = State;
 	Qlist *newChain = malloc(sizeof(Qlist));
-	newChain->state = newState;
+	newChain->state = NULL;
 	newChain->next = NULL;
 	list->next = newChain;
-	return newChain;
+	return list;
     }
-    addQlist(list->next, name);
+    addQlist(list->next, State);
 }
 
 //Return the Qstate of given name searched on Qlist if exists, NULL returned else 
@@ -69,15 +80,18 @@ void modifyQlist(Qlist *list, char *name, char *type){
 }
 
 void parserMT(char *path, char *input){
-    //reconnaitre état
-    //initialiser état
+    //reconnaitre et initialiser état
     //faire liaison correspondantes => créer états si non existant
     machine *M = initMachine(input);
     char *delimiters = "; :,\n\0";
+
+    Qlist *statesList = malloc(sizeof(Qlist));
+    statesList->state = NULL;
+    statesList->next = NULL;
     
     FILE *descMachine = fopen(path, "r");
     if(descMachine == NULL){
-	fprintf(stderr, "Descripting file of turing machine not found");
+	fprintf(stdout, "\x1B[31m(1) Descripting file of turing machine not found.\x1B[0m\n");
 	exit(1);
     }
     
@@ -103,26 +117,47 @@ void parserMT(char *path, char *input){
 	    M->name = getTokStr(getNextTok(tokBuf));
 	}
 	else if(strcmp(str, "init") == 0){
-	    Qstate *init = malloc(sizeof(Qstate));
 	    tokBuf = getNextTok(tokBuf);
-	    init->name = getTokStr(tokBuf);
-	    init->final = 0;
-	    init->links = NULL;
+	    str = getTokStr(tokBuf);
+	    Qstate *init = newQstate(str, 0);
 	    M->initState = init;
-	    
+	    addQlist(statesList, init);
 	    tokBuf = getNextTok(tokBuf);
 	    if(tokBuf != NULL){
 		str = getTokStr(tokBuf);
-		if((str[0] != 47) || (str[1] != 47)){
+		if(((str[0] != 47) || (str[1] != 47))){
 		    fprintf(stderr, "\x1B[31m(2) 2 init states have been given on line %d\n%sword : %s\n\x1B[0m", lineNumber, line, getTokStr(tokBuf));
 		    exit(2);
 		}
 	    }
 	}
 	
-	//else if(strcmp(str, "accept") == 0){
-	//tokBuf = getNextTok(tokBuf);
-	//}
+	else if(strcmp(str, "accept") == 0){
+	    tokBuf = getNextTok(tokBuf);
+	    if(tokBuf != NULL){
+		Qstate *newState = malloc(sizeof(Qstate));
+		str = getTokStr(tokBuf);
+
+		if((str[0] != 47) && (str[1] != 47)){
+		    addQlist(statesList, newQstate(str, 1));
+		    tokBuf = getNextTok(tokBuf);		    
+		    while(tokBuf != NULL){
+			str = getTokStr(tokBuf);
+			if((str[0] == 47) || (str[1] == 47)){ break; }
+			addQlist(statesList, newQstate(str, 1));
+			tokBuf = getNextTok(tokBuf);
+		    }
+		}
+		else{
+		    fprintf(stdout, "\x1B[31m(3) Accept state are commentary\n\x1B[0m");
+		    exit(3);
+		}
+	    }
+	    else{
+		fprintf(stdout, "\x1B[31m(4) No accept state given\n\x1B[0m");
+		exit(4);
+	    }
+	}
 	//else if((str[0] != 47) && (str[1] != 47)){
 	
 	//}
