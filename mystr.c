@@ -44,6 +44,8 @@ void printTok(token *tok){
 }
 
 token *getNextTok(token *tok){
+    if(tok == NULL){ return NULL; }
+    if(tok->next == NULL){ return NULL; }
     return tok->next;
 }
 

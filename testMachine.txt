@@ -6,7 +6,7 @@ accept: QAccept
 QInit, a //test
 QImpair, a, >
 
-QInit, b
+QInit, b,
 QImpair, b, >
 
 //Suite comptage

@@ -1,6 +1,9 @@
 typedef struct MT machine;
 typedef struct QstateList Qlist;
 typedef struct Qstate Qstate;
+typedef struct linkList linkList;
+linkList *getLastLink(linkList *links);
+void addLink(Qstate *state, linkList *list);
 Qlist *addQlist(Qlist *list, Qstate *state);
 Qstate *searchQlist(Qlist *list, char *name);
 machine *initMachine(char *input);

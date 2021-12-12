@@ -5,9 +5,9 @@
 #include "mystr.h"
 
 struct Qstate{
-	char *name;
-	int final;
-	struct link *links;
+    char *name;
+    int final;
+    struct linkList *links;
 };
 
 Qstate *newQstate(char *name, int final){
@@ -27,11 +27,27 @@ Qstate *newQstate(char *name, int final){
 
 typedef struct Qstate Qstate;
 
-struct link{
-	char letter;
-	Qstate *qstate;	
+struct linkList{
+    char letterIn;
+    char letterOut;
+    char moove;
+    struct Qstate *state;
+    struct linkList *next;
 };
-typedef struct link link;
+typedef struct linkList linkList;
+
+linkList *getLastLink(linkList *links){
+    if(links == NULL){ return NULL; }
+    else if(links->next != NULL){ return getLastLink(links->next); }
+    else { return links; }
+}
+
+void addLink(Qstate *state, linkList *link){
+    linkList *list = state->links;
+    list = getLastLink(link);
+    if(list == NULL){ state->links = link; }
+    else{ list->next = link; }
+}
 
 struct MT{
     char *name;
@@ -66,7 +82,7 @@ Qlist *addQlist(Qlist *list, Qstate *State){
 	list->next = newChain;
 	return list;
     }
-    addQlist(list->next, State);
+    return addQlist(list->next, State);
 }
 
 //Return the Qstate of given name searched on Qlist if exists, NULL returned else 
@@ -83,14 +99,6 @@ Qstate *searchQlist(Qlist *list, char *name){
 	return NULL;
     }
     return NULL;
-}
-
-//Modify given values 
-void modifyTypeOnList(Qlist *list, char *name, int type){
-    Qstate *s = searchQlist(list, name);
-    if(s != NULL){
-	s->final = type;
-    }
 }
 
 void parserMT(char *path, char *input){
@@ -114,9 +122,10 @@ void parserMT(char *path, char *input){
     token *tokBuf = NULL;
     char *str = NULL;
     int lineNumber = 0;
+    int creatingState = 0;
     while(lineNumber >= 0){
-	lineNumber++;
 	do{
+	    lineNumber++;
 	    line = fgets(line, 128, descMachine);
 	    if(line == NULL) return;
 	    if(line[0] != 10){
@@ -172,10 +181,105 @@ void parserMT(char *path, char *input){
 		tokBuf = getNextTok(tokBuf);
 	    }
 	}
-	//else if((str[0] != 47) && (str[1] != 47)){
-	
-	//}
-	
+
+	else{
+	    str = getTokStr(tokBuf);
+	    Qstate *state =  searchQlist(statesList, str);
+	    if(state == NULL){
+		state = newQstate(str, 0);
+		addQlist(statesList, state);
+	    }
+	    tokBuf = getNextTok(tokBuf);
+	    str = getTokStr(tokBuf);
+
+	    linkList *links= state->links;
+	    links = getLastLink(links);
+	    linkList *new = malloc(sizeof(linkList));
+	    if(links == NULL){ links = new; }
+	    else{ links->next = new; }
+	    new->next = NULL;
+	    
+	    if(strlen(str) == 1){ links->letterIn = str[0]; }
+	    else{
+		fprintf(stdout, "\x1B[31mError, transistion at line %d, \"%s\" are not a simple carracter\x1B[0m\n", lineNumber, str);
+		exit(6);
+	    }
+	    
+	    tokBuf = getNextTok(tokBuf);
+	    
+	    if(tokBuf != NULL){
+		str = getTokStr(tokBuf);
+		if((str[0] != 47) || (str[1] != 47)){
+		    fprintf(stdout, "\x1B[31m3 or more parameters at line %d \"%s\" are given. Commentary expected.\x1B[0m\n", lineNumber, str);
+		    exit(5);
+		}
+	    }
+	    
+	    addLink(state, links);
+	    
+	    do{
+		lineNumber++;
+		line = fgets(line, 128, descMachine);
+		if(line == NULL) return;
+		if(line[0] != 10){
+		    tok = strToTok(line, delimiters);
+		    str = getTokStr(tok);
+		}
+	    }while((line[0] == 10) || ((str[0] == 47) && (str[1] == 47)));
+	    tokBuf = tok;
+
+	    //New state
+	    state =  searchQlist(statesList, str);
+            if(state == NULL){
+                state = newQstate(str, 0);
+                addQlist(statesList, state);
+	    }
+	    links->state = state;
+
+	    //writed char
+	    tokBuf = getNextTok(tokBuf);
+	    if(tokBuf == NULL){
+		fprintf(stdout, "\x1B[31mError, \"writed char\" token  expected at line %d. If blank, pleaze write \"_\"\x1B[0m\n", lineNumber);
+		exit(6);
+	    }
+	    str = getTokStr(tokBuf);
+	    if(strlen(str) != 1){
+		fprintf(stdout, "\x1B[31mError, \"writed char\" token at line %d, \"%s\" is not a simple char\x1B[0m\n", lineNumber, str);
+                exit(6);      
+	    }
+	    links->letterOut = str[0];
+
+	    //moove
+	    tokBuf = getNextTok(tokBuf);
+	    if(tokBuf == NULL){
+		fprintf(stdout, "\x1B[31mError, \"moove\" token expected at line %d\x1B[0m\n", lineNumber);
+		exit(6);
+	    }
+	    str = getTokStr(tokBuf);
+	    if(strlen(str) != 1){
+		fprintf(stdout, "\x1B[31mError, \"moove\" token at line %d is not a simple char\x1B[0m\n", lineNumber);
+		exit(6);
+	    }
+	    if((str[0] == 45) || (str[0] == 60) || (str[0] == 62)){
+		links->moove = str[0];
+	    }
+	    else{
+		fprintf(stdout, "\x1B[31mThe moove on line %d \"%s\" doesn't exist\x1B[0m\n", lineNumber, str);
+		exit(7);
+	    }
+
+	    tokBuf = getNextTok(tokBuf);
+	    if(tokBuf != NULL){
+		str = getTokStr(tokBuf);
+		if((str[0] != 47) || (str[1] != 47)){
+		    fprintf(stdout, "\x1B[31m3 or more parameters at line %d \"%s\" are given. Commentary expected.\x1B[0m\n", lineNumber, str);
+		    exit(5);
+		}
+	    }
+
+
+	    
+	}	
     }
     fclose(descMachine);
 }
