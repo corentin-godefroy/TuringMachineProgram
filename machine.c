@@ -101,6 +101,17 @@ Qstate *searchQlist(Qlist *list, char *name){
     return NULL;
 }
 
+void printQlist(Qlist *list){
+    if(list == NULL){ printf("null\n"); }
+    else{
+	if(list->state != NULL){
+	    Qstate *state = list->state;
+	    printf("state name : %s\n", state->name);
+	    printQlist(list->next);
+	}
+    }
+}
+
 void parserMT(char *path, char *input){
     //reconnaitre et initialiser état
     //faire liaison correspondantes => créer états si non existant
@@ -122,19 +133,23 @@ void parserMT(char *path, char *input){
     token *tokBuf = NULL;
     char *str = NULL;
     int lineNumber = 0;
-    int creatingState = 0;
+    
     while(lineNumber >= 0){
 	do{
 	    lineNumber++;
 	    line = fgets(line, 128, descMachine);
-	    if(line == NULL) return;
+	    if(line == NULL){
+		tok = NULL;
+		str = NULL;
+		break;
+	    }
 	    if(line[0] != 10){
 		tok = strToTok(line, delimiters);
 		str = getTokStr(tok);
 	    }
 	}while((line[0] == 10) || ((str[0] == 47) && (str[1] == 47))); //ascii 10 code "\n", 47 code "/"
+	if(str == NULL){ break; }
 	tokBuf = tok;
-	printTok(tokBuf);
 	
         if(strcmp(str, "name") == 0){
 	    M->name = getTokStr(getNextTok(tokBuf));
@@ -182,7 +197,7 @@ void parserMT(char *path, char *input){
 	    }
 	}
 
-	else{
+	else if(str != NULL){
 	    str = getTokStr(tokBuf);
 	    Qstate *state =  searchQlist(statesList, str);
 	    if(state == NULL){
@@ -220,14 +235,18 @@ void parserMT(char *path, char *input){
 	    do{
 		lineNumber++;
 		line = fgets(line, 128, descMachine);
-		if(line == NULL) return;
+		if(line == NULL){
+		    fprintf(stdout, "\x1B[31mERROR, line of transition expected at end of file.\x1B[0m\n");
+		    str = NULL;
+		    tok = NULL;
+		    break;
+		}
 		if(line[0] != 10){
 		    tok = strToTok(line, delimiters);
 		    str = getTokStr(tok);
 		}
 	    }while((line[0] == 10) || ((str[0] == 47) && (str[1] == 47)));
 	    tokBuf = tok;
-
 	    //New state
 	    state =  searchQlist(statesList, str);
             if(state == NULL){
@@ -276,10 +295,8 @@ void parserMT(char *path, char *input){
 		    exit(5);
 		}
 	    }
-
-
-	    
 	}	
     }
+    
     fclose(descMachine);
 }
