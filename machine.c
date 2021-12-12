@@ -58,7 +58,7 @@ machine *initMachine(char *input){
 }
 
 Qlist *addQlist(Qlist *list, Qstate *State){
-    if(list->next == NULL){
+    if(list->state == NULL){
 	list->state = State;
 	Qlist *newChain = malloc(sizeof(Qlist));
 	newChain->state = NULL;
@@ -71,12 +71,26 @@ Qlist *addQlist(Qlist *list, Qstate *State){
 
 //Return the Qstate of given name searched on Qlist if exists, NULL returned else 
 Qstate *searchQlist(Qlist *list, char *name){
-    //TODO
+    if(list->state != NULL){
+	Qstate *state = list->state;
+	char *str2 = state->name;
+	if(strcmp(str2, name) == 0){
+	    return state;
+	}
+	if(list->next != NULL){
+	    return searchQlist(list->next, name);
+	}
+	return NULL;
+    }
+    return NULL;
 }
 
 //Modify given values 
-void modifyQlist(Qlist *list, char *name, char *type){
-    //TODO
+void modifyTypeOnList(Qlist *list, char *name, int type){
+    Qstate *s = searchQlist(list, name);
+    if(s != NULL){
+	s->final = type;
+    }
 }
 
 void parserMT(char *path, char *input){
@@ -126,7 +140,7 @@ void parserMT(char *path, char *input){
 	    if(tokBuf != NULL){
 		str = getTokStr(tokBuf);
 		if(((str[0] != 47) || (str[1] != 47))){
-		    fprintf(stderr, "\x1B[31m(2) 2 init states have been given on line %d\n%sword : %s\n\x1B[0m", lineNumber, line, getTokStr(tokBuf));
+		    fprintf(stderr, "\x1B[31m(2) 2 init states or more have been given on line %d\n%sword : %s\n\x1B[0m", lineNumber, line, getTokStr(tokBuf));
 		    exit(2);
 		}
 	    }
@@ -134,28 +148,28 @@ void parserMT(char *path, char *input){
 	
 	else if(strcmp(str, "accept") == 0){
 	    tokBuf = getNextTok(tokBuf);
-	    if(tokBuf != NULL){
-		Qstate *newState = malloc(sizeof(Qstate));
-		str = getTokStr(tokBuf);
-
-		if((str[0] != 47) && (str[1] != 47)){
-		    addQlist(statesList, newQstate(str, 1));
-		    tokBuf = getNextTok(tokBuf);		    
-		    while(tokBuf != NULL){
-			str = getTokStr(tokBuf);
-			if((str[0] == 47) || (str[1] == 47)){ break; }
-			addQlist(statesList, newQstate(str, 1));
-			tokBuf = getNextTok(tokBuf);
-		    }
-		}
-		else{
-		    fprintf(stdout, "\x1B[31m(3) Accept state are commentary\n\x1B[0m");
-		    exit(3);
-		}
+	    if(tokBuf == NULL){
+		fprintf(stdout, "\x1B[31m(4) No accept state given\n\x1B[0m");
+                exit(4);
+	    }
+	    str = getTokStr(tokBuf);
+	    if((str[0] == 47) && (str[1] == 47)){
+		fprintf(stdout, "\x1B[31m(3) Accept state are commentary\n\x1B[0m");
+                exit(3); 
+	    }
+	    Qstate *state = searchQlist(statesList, str);
+	    if(state == NULL){
+		addQlist(statesList, newQstate(str, 1));
 	    }
 	    else{
-		fprintf(stdout, "\x1B[31m(4) No accept state given\n\x1B[0m");
-		exit(4);
+		state->final = 1;
+	    }
+	    tokBuf = getNextTok(tokBuf);		    
+	    while(tokBuf != NULL){
+		str = getTokStr(tokBuf);
+		if((str[0] == 47) && (str[1] == 47)){ break; }
+		addQlist(statesList, newQstate(str, 1));
+		tokBuf = getNextTok(tokBuf);
 	    }
 	}
 	//else if((str[0] != 47) && (str[1] != 47)){
