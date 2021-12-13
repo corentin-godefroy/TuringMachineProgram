@@ -150,7 +150,7 @@ machine *parserMT(char *path, char *input){
     FILE *descMachine = fopen(path, "r");
     if(descMachine == NULL){
 	fprintf(stdout, "\x1B[31m(1) Descripting file of turing machine not found.\x1B[0m\n");
-	exit(1);
+	exit(-1);
     }
     
     char *line = malloc(128*sizeof(char));
@@ -192,7 +192,7 @@ machine *parserMT(char *path, char *input){
 		str = getTokStr(tokBuf);
 		if(((str[0] != 47) || (str[1] != 47))){
 		    fprintf(stderr, "\x1B[31m(2) 2 init states or more have been given on line %d\n%sword : %s\n\x1B[0m", lineNumber, line, getTokStr(tokBuf));
-		    exit(2);
+		    exit(0);
 		}
 	    }
 	}
@@ -200,13 +200,13 @@ machine *parserMT(char *path, char *input){
 	else if(strcmp(str, "accept") == 0){
 	    tokBuf = getNextTok(tokBuf);
 	    if(tokBuf == NULL){
-		fprintf(stdout, "\x1B[31m(4) No accept state given\n\x1B[0m");
-                exit(4);
+		fprintf(stderr, "\x1B[31m(4) No accept state given\n\x1B[0m");
+                exit(1);
 	    }
 	    str = getTokStr(tokBuf);
 	    if((str[0] == 47) && (str[1] == 47)){
-		fprintf(stdout, "\x1B[31m(3) Accept state are commentary\n\x1B[0m");
-                exit(3); 
+		fprintf(stderr, "\x1B[31m(3) Accept state are commentary\n\x1B[0m");
+                exit(2); 
 	    }
 	    Qstate *state = searchQlist(statesList, str);
 	    if(state == NULL){
@@ -236,11 +236,13 @@ machine *parserMT(char *path, char *input){
 	    tokBuf = getNextTok(tokBuf);
 	    
 	    if(tokBuf == NULL){
-		//erreur token manquant
+		fprintf(stderr, "\x1B[31mMissing token at line %d. Readed letter espected.\x1B[0m\n", lineNumber);
+		exit(3);
 	    }
 	    str = getTokStr(tokBuf);
 	    if(strlen(str) != 1){
-		//erreur multiples carractères
+		fprintf(stderr, "\x1B[31mMultiple char given for readed letter at line %d.\x1B[0m\n", lineNumber);
+		exit(4);
 	    }
 	    newLink->letterIn = str[0];
 	    
@@ -248,7 +250,8 @@ machine *parserMT(char *path, char *input){
 	    if(tokBuf != NULL){
 		str = getTokStr(tokBuf);
 		if((str[0] != 47) || (str[1] != 47)){
-		    //erreur multiples token donnés
+		    fprintf(stderr, "\x1B[31mMultiple token given at line %d. You maybe want to write a commentary ?\x1B[0m\n", lineNumber);
+		    exit(5);
 		}
 	    }
 	    //récup prochaine ligne
@@ -256,8 +259,8 @@ machine *parserMT(char *path, char *input){
 		lineNumber++;
 		line = fgets(line, 128, descMachine);
 		if(line == NULL){
-		    //erreur fin du fichier, manque la fin de la description de la transition
-		    break;
+		    fprintf(stderr, "\x1B[31mMissing line for transition at line %d.\x1B[0m\n", lineNumber);
+		    exit(6);
 		}
 		if(line[0] != 10){
 		    tok = strToTok(line, delimiters);
@@ -274,26 +277,37 @@ machine *parserMT(char *path, char *input){
 	    newLink->state = state;
 	    tokBuf = getNextTok(tokBuf);
 	    if(tokBuf == NULL){
-		//erreur déplacement fait ou carractère écrit manquant
+		fprintf(stderr, "\x1B[31mMissing \"write\" symbol or \"moove\" token at line %d.\x1B[0m\n", lineNumber);
+		exit(7);
 	    }
 	    str = getTokStr(tokBuf);
 	    
 	    if(strlen(str) != 1){
-		//erreur multiples carractères de transition
+		fprintf(stderr, "\x1B[31mMultiple char given for \"write symbol\" token at line %d.\x1B[0m\n", lineNumber);
+		exit(8);
 	    }
 	    newLink->letterOut = str[0];
 	    
 	    tokBuf = getNextTok(tokBuf);
 	    if(tokBuf == NULL){
-		//erreur déplacement fait ou carractère écrit manquant
+		fprintf(stderr, "\x1B[31mMissing \"write\" symbol or \"moove\" token at line %d.\x1B[0m\n", lineNumber);
+		exit(9);
 	    }
 	    str = getTokStr(tokBuf);
 	    if(strlen(str) != 1){
-		//erreur multiples carractères de transition
+		fprintf(stderr, "\x1B[31mMultiple char given for \"moove\" token at line %d.\x1B[0m\n", lineNumber);
+		exit(10);
 	    }
 	    newLink->moove = str[0];
 
-	    
+	    tokBuf = getNextTok(tokBuf);
+	    if(tokBuf != NULL){
+		str = getTokStr(tokBuf);
+		if((str[0] != 47) || (str[1] != 47)){
+		    fprintf(stderr, "\x1B[31mMultiple token given at line %d. You maybe want to write a commentary ?\x1B[0m\n", lineNumber);
+		    exit(11);
+		}
+	    }
 	}
     }
 
