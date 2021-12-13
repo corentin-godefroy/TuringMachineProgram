@@ -52,7 +52,7 @@ token *getNextTok(token *tok){
 //str : chaine d'entrée
 //del : carractères de délimitation servant à découper la chaine en token
 //renvoie une liste chainée de token 
-token *strToTok(char *str, char *del){
+token *strToTok(char *str, const char *del){
     int posStr = 0;
     int posDel = 0;
     int startTokPos = 0;

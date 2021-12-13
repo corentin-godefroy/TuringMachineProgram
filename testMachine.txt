@@ -3,7 +3,7 @@ init: QInit
 accept: QAccept
 
 //Initial, début comptage
-QInit, a //test
+QInit, a
 QImpair, a, >
 
 QInit, b,

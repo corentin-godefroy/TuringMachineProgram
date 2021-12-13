@@ -1,5 +1,5 @@
 typedef struct token token;
-token *strToTok(char *str, char *del);
+token *strToTok(char *str, const char *del);
 char *getTokStr(token *tok);
 void addStrTok(token *tok, char *c);
 token *addNewTok(token *tok, char *c);

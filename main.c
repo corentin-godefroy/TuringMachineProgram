@@ -4,9 +4,10 @@
 #include "mystr.h"
  
 void main(int argc, char *argv[]){    
-    parserMT(argv[1], argv[2]);
-    //if (argc == 3){
-    
-    //}
+    machine *M = parserMT(argv[1], argv[2]);
+    int status = 1;
+    while(status){
+	status = runMT(M);
+    }
     exit(0);
 }

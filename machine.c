@@ -39,14 +39,30 @@ typedef struct linkList linkList;
 linkList *getLastLink(linkList *links){
     if(links == NULL){ return NULL; }
     else if(links->next != NULL){ return getLastLink(links->next); }
-    else { return links; }
+    return links;
 }
 
-void addLink(Qstate *state, linkList *link){
-    linkList *list = state->links;
-    list = getLastLink(link);
-    if(list == NULL){ state->links = link; }
-    else{ list->next = link; }
+void addLink(Qstate *state, linkList *stateLink, linkList *link){
+    if(stateLink == NULL){ state->links = link; }
+    else if(stateLink->next == NULL){
+	stateLink->next = link;
+    }
+    else{ addLink(state, stateLink->next, link); }
+}
+
+linkList *searchLink(linkList *list, char c){
+    if(list ==NULL){ return NULL; }
+    char In = list->letterIn;
+    linkList *next = list->next; 
+    if(In == c){
+	return list;
+    }
+    else if(next != NULL){
+	return searchLink(next, c);
+    }
+    else{
+	return NULL;
+    }
 }
 
 struct MT{
@@ -107,16 +123,25 @@ void printQlist(Qlist *list){
 	if(list->state != NULL){
 	    Qstate *state = list->state;
 	    printf("state name : %s\n", state->name);
+	    linkList *slist = state->links;
+	    if(slist == NULL){ printf("Il n'y a aucun lien pour cet état\n"); }
+	    else{
+		printf("LINKS :\n");
+		do{
+		    printf("letterIn : %c, letterOut : %c, moove : %c, new current state : %s\n", slist->letterIn, slist->letterOut, slist->moove, slist->state->name);
+		    slist = slist->next;
+		}while(slist != NULL);
+		}
 	    printQlist(list->next);
 	}
     }
 }
 
-void parserMT(char *path, char *input){
+machine *parserMT(char *path, char *input){
     //reconnaitre et initialiser état
     //faire liaison correspondantes => créer états si non existant
     machine *M = initMachine(input);
-    char *delimiters = "; :,\n\0";
+    const char *delimiters = "; :,\n\0";
 
     Qlist *statesList = malloc(sizeof(Qlist));
     statesList->state = NULL;
@@ -159,6 +184,8 @@ void parserMT(char *path, char *input){
 	    str = getTokStr(tokBuf);
 	    Qstate *init = newQstate(str, 0);
 	    M->initState = init;
+	    M->currentState = init;
+	    M->position = 0;
 	    addQlist(statesList, init);
 	    tokBuf = getNextTok(tokBuf);
 	    if(tokBuf != NULL){
@@ -198,47 +225,38 @@ void parserMT(char *path, char *input){
 	}
 
 	else if(str != NULL){
-	    str = getTokStr(tokBuf);
-	    Qstate *state =  searchQlist(statesList, str);
+	    Qstate *state = searchQlist(statesList, str);
 	    if(state == NULL){
-		state = newQstate(str, 0);
-		addQlist(statesList, state);
+	        Qlist *list = addQlist(statesList, newQstate(str, 0));
+		state = list->state;
 	    }
+	    linkList *newLink = malloc(sizeof(linkList));
+	    addLink(state, state->links, newLink);
+	    newLink->next = NULL;
 	    tokBuf = getNextTok(tokBuf);
+	    
+	    if(tokBuf == NULL){
+		//erreur token manquant
+	    }
 	    str = getTokStr(tokBuf);
-
-	    linkList *links= state->links;
-	    links = getLastLink(links);
-	    linkList *new = malloc(sizeof(linkList));
-	    if(links == NULL){ links = new; }
-	    else{ links->next = new; }
-	    new->next = NULL;
-	    
-	    if(strlen(str) == 1){ links->letterIn = str[0]; }
-	    else{
-		fprintf(stdout, "\x1B[31mError, transistion at line %d, \"%s\" are not a simple carracter\x1B[0m\n", lineNumber, str);
-		exit(6);
+	    if(strlen(str) != 1){
+		//erreur multiples carractères
 	    }
+	    newLink->letterIn = str[0];
 	    
 	    tokBuf = getNextTok(tokBuf);
-	    
 	    if(tokBuf != NULL){
 		str = getTokStr(tokBuf);
 		if((str[0] != 47) || (str[1] != 47)){
-		    fprintf(stdout, "\x1B[31m3 or more parameters at line %d \"%s\" are given. Commentary expected.\x1B[0m\n", lineNumber, str);
-		    exit(5);
+		    //erreur multiples token donnés
 		}
 	    }
-	    
-	    addLink(state, links);
-	    
+	    //récup prochaine ligne
 	    do{
 		lineNumber++;
 		line = fgets(line, 128, descMachine);
 		if(line == NULL){
-		    fprintf(stdout, "\x1B[31mERROR, line of transition expected at end of file.\x1B[0m\n");
-		    str = NULL;
-		    tok = NULL;
+		    //erreur fin du fichier, manque la fin de la description de la transition
 		    break;
 		}
 		if(line[0] != 10){
@@ -247,56 +265,97 @@ void parserMT(char *path, char *input){
 		}
 	    }while((line[0] == 10) || ((str[0] == 47) && (str[1] == 47)));
 	    tokBuf = tok;
-	    //New state
-	    state =  searchQlist(statesList, str);
-            if(state == NULL){
-                state = newQstate(str, 0);
-                addQlist(statesList, state);
+	    
+	    state = searchQlist(statesList, str);
+	    if(state == NULL){
+		Qlist *list = addQlist(statesList, newQstate(str, 0));
+		state = list->state;
 	    }
-	    links->state = state;
-
-	    //writed char
+	    newLink->state = state;
 	    tokBuf = getNextTok(tokBuf);
 	    if(tokBuf == NULL){
-		fprintf(stdout, "\x1B[31mError, \"writed char\" token  expected at line %d. If blank, pleaze write \"_\"\x1B[0m\n", lineNumber);
-		exit(6);
+		//erreur déplacement fait ou carractère écrit manquant
+	    }
+	    str = getTokStr(tokBuf);
+	    
+	    if(strlen(str) != 1){
+		//erreur multiples carractères de transition
+	    }
+	    newLink->letterOut = str[0];
+	    
+	    tokBuf = getNextTok(tokBuf);
+	    if(tokBuf == NULL){
+		//erreur déplacement fait ou carractère écrit manquant
 	    }
 	    str = getTokStr(tokBuf);
 	    if(strlen(str) != 1){
-		fprintf(stdout, "\x1B[31mError, \"writed char\" token at line %d, \"%s\" is not a simple char\x1B[0m\n", lineNumber, str);
-                exit(6);      
+		//erreur multiples carractères de transition
 	    }
-	    links->letterOut = str[0];
+	    newLink->moove = str[0];
 
-	    //moove
-	    tokBuf = getNextTok(tokBuf);
-	    if(tokBuf == NULL){
-		fprintf(stdout, "\x1B[31mError, \"moove\" token expected at line %d\x1B[0m\n", lineNumber);
-		exit(6);
-	    }
-	    str = getTokStr(tokBuf);
-	    if(strlen(str) != 1){
-		fprintf(stdout, "\x1B[31mError, \"moove\" token at line %d is not a simple char\x1B[0m\n", lineNumber);
-		exit(6);
-	    }
-	    if((str[0] == 45) || (str[0] == 60) || (str[0] == 62)){
-		links->moove = str[0];
-	    }
-	    else{
-		fprintf(stdout, "\x1B[31mThe moove on line %d \"%s\" doesn't exist\x1B[0m\n", lineNumber, str);
-		exit(7);
-	    }
+	    
+	}
+    }
 
-	    tokBuf = getNextTok(tokBuf);
-	    if(tokBuf != NULL){
-		str = getTokStr(tokBuf);
-		if((str[0] != 47) || (str[1] != 47)){
-		    fprintf(stdout, "\x1B[31m3 or more parameters at line %d \"%s\" are given. Commentary expected.\x1B[0m\n", lineNumber, str);
-		    exit(5);
-		}
-	    }
-	}	
+    fclose(descMachine);
+    return M;
+}
+
+
+int runMT(machine *M){
+    Qstate *current = M->currentState;
+    char *input = M->input;
+    int pos = M->position;
+    if(input[pos] == 32){ input[pos] = 95; }
+    char in = input[pos];
+    linkList *link = searchLink(current->links, in);
+    if(link == NULL){
+	if(current->final == 0){ printf("REJECTED : Le mot n'est pas reconnu par le langage.\n"); }
+	else { printf("ACCEPTED : Le mot est reconnu par le langage.\n"); }
+	return 0;
     }
     
-    fclose(descMachine);
+    M->currentState = link->state;
+    input[pos] = link->letterOut;
+    M->input = input;
+    char moove = link->moove;
+    if(moove == 60){
+	pos = pos - 1;
+	if(pos < 0){
+	    int i = 0;
+	    char *newInput = malloc((strlen(input) + 1) * sizeof(char));
+	    newInput[0] = 95;
+	    i++;
+	    while(i <= strlen(input)+1){
+		newInput[i] = input[i - 1];
+		i++;
+	    }
+	    M->input = newInput;
+	    pos = 0;
+	}
+	M->position = pos;
+    }
+    else if(moove == 62){
+	pos++;
+	if(pos >= strlen(input)){
+	    int i = 0;
+	    char *newInput = malloc((strlen(input) + 1) * sizeof(char));
+	    while(i < strlen(input)){
+		newInput[i] = input[i];
+		i++;
+	    }
+	    newInput[i] = 95;
+	    newInput[i + 1] = 0;
+	    M->input = newInput;
+	}
+	M->position = pos;
+    }
+    else if(moove == 45){ M->position = pos; }
+    current = M->currentState;
+    int final = current->final; 
+    if(final == 1){
+	printf("ACCEPTED : le mot est reconnus par le langage\n");
+	return 0;
+    }
+    return 1;
 }
