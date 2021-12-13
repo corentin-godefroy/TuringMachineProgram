@@ -304,7 +304,7 @@ machine *parserMT(char *path, char *input){
 	    if(tokBuf != NULL){
 		str = getTokStr(tokBuf);
 		if((str[0] != 47) || (str[1] != 47)){
-		    fprintf(stderr, "\x1B[31mMultiple token given at line %d. You maybe want to write a commentary ?\x1B[0m\n", lineNumber);
+		    fprintf(stderr, "\x1B[31mMultiple token given at line %d. You maybe want to write a commentarxy ?\x1B[0m\n", lineNumber);
 		    exit(11);
 		}
 	    }
@@ -320,6 +320,21 @@ int runMT(machine *M){
     Qstate *current = M->currentState;
     char *input = M->input;
     int pos = M->position;
+
+
+    char *posIndic = malloc(pos*sizeof(char));
+    for(int i = 0; i < pos; i ++){
+	posIndic[i] = 32;
+    }
+    posIndic[pos] = 94;
+    posIndic[pos + 1] = 0;
+
+    printf("Configuration :\n\
+Etat courrant : %s\n\
+Etat de la bande      : %s\n\
+Position sur la bande : %s\n\n", M->currentState->name, M->input, posIndic);
+
+    
     if(input[pos] == 32){ input[pos] = 95; }
     char in = input[pos];
     linkList *link = searchLink(current->links, in);
@@ -371,5 +386,6 @@ int runMT(machine *M){
 	printf("ACCEPTED : le mot est reconnus par le langage\n");
 	return 0;
     }
+    
     return 1;
 }
