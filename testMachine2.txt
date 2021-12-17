@@ -1,0 +1,30 @@
+name: Décompteur
+init: Qinit
+accept: Qaccept
+
+Qinit, 1
+Qinit, 1, >
+
+Qinit, 0
+Qinit, 0, >
+
+Qinit, _
+Qfin, _, <
+
+Qfin, _
+Qaccept, _, -
+
+Qfin, 0
+Qfin, 1, <
+
+Qfin, 1
+Qdebut, 0, <
+
+Qdebut, 1
+Qdebut, 1, <
+
+Qdebut, 0
+Qdebut, 0, <
+
+Qdebut, _
+Qinit, _, >
