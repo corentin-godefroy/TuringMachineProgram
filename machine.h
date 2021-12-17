@@ -10,4 +10,5 @@ Qstate *searchQlist(Qlist *list, char *name);
 machine *initMachine(char *input);
 void printMachine(machine *M);
 machine *parserMT(char *path, char *input);
+void printMT(machine *M);
 int runMT(machine *M);

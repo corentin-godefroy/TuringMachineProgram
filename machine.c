@@ -315,13 +315,8 @@ machine *parserMT(char *path, char *input){
     return M;
 }
 
-
-int runMT(machine *M){
-    Qstate *current = M->currentState;
-    char *input = M->input;
-    int pos = M->position;
-
-
+void printMT(machine *M){
+    int pos  = M->position;
     char *posIndic = malloc(pos*sizeof(char));
     for(int i = 0; i < pos; i ++){
 	posIndic[i] = 32;
@@ -334,6 +329,13 @@ Etat courrant : %s\n\
 Etat de la bande      : %s\n\
 Position sur la bande : %s\n\n", M->currentState->name, M->input, posIndic);
 
+}
+
+
+int runMT(machine *M){
+    Qstate *current = M->currentState;
+    char *input = M->input;
+    int pos = M->position;
     
     if(input[pos] == 32){ input[pos] = 95; }
     char in = input[pos];
